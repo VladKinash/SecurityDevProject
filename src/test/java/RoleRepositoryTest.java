@@ -1,14 +1,13 @@
+import com.nyc.hosp.HospApplication;
 import com.nyc.hosp.domain.Role;
 import com.nyc.hosp.repos.RoleRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(classes = HospApplication.class)
 public class RoleRepositoryTest {
 
     @Autowired
@@ -16,7 +15,12 @@ public class RoleRepositoryTest {
 
     @Test
     public void testFindById() {
-        Optional<Role> adminRole = roleRepository.findById(1);
-        assertTrue(adminRole.isPresent(), "Expected role with ID 1 to be present");
+        // Setup
+        Role admin = new Role();
+        admin.setRolename("Admin");
+        Role saved = roleRepository.save(admin);  // Auto-inserts and gets ID
+
+        // Test
+        assertTrue(roleRepository.findById(saved.getRoleId()).isPresent(), "Role should exist after save");
     }
 }

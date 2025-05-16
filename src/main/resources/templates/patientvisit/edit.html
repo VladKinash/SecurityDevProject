@@ -13,14 +13,16 @@
                 </div>
             </div>
             <div th:replace="~{fragments/forms::globalErrors('patientvisit')}" />
-            <form th:action="${requestUri}" method="post" novalidate="">
-                <div th:replace="~{fragments/forms::inputRow(object='patientvisit', field='visitid', disabled=true, type='number')}" />
+            <form th:if="${isEditable}" th:action="${requestUri}" method="post" novalidate="">                <div th:replace="~{fragments/forms::inputRow(object='patientvisit', field='visitid', disabled=true, type='number')}" />
                 <div th:replace="~{fragments/forms::inputRow(object='patientvisit', field='vistidate', inputClass='js-datepicker')}" />
                 <div th:replace="~{fragments/forms::inputRow(object='patientvisit', field='diagnosis', type='textarea')}" />
                 <div th:replace="~{fragments/forms::inputRow(object='patientvisit', field='patient', type='select')}" />
                 <div th:replace="~{fragments/forms::inputRow(object='patientvisit', field='doctor', type='select')}" />
-                <input type="submit" th:value="#{patientvisit.edit.headline}" class="btn btn-primary mt-4" />
-            </form>
+                <input type="submit" th:value="#{patientvisit.edit.headline}" class="btn btn-primary mt-4" />            </form>
+            <div th:if="${!isEditable}">
+                <div class="alert alert-danger mt-4">
+                    You do not have permission to edit this patient visit.
+                </div>
         </div>
     </body>
 </html>

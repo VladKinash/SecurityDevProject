@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 
 @Controller
@@ -49,13 +51,33 @@ public class PatientvisitController {
     }
 
     @GetMapping("/add")
-    public String add(@ModelAttribute("patientvisit") final PatientvisitDTO patientvisitDTO) {
+    public String add(@ModelAttribute("patientvisit") final PatientvisitDTO patientvisitDTO, Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Hospuser currentUser = hospuserRepository.findByUsername(username).orElse(null);
+
+        if (currentUser == null || currentUser.getRole().getRoleId() != 2) {
+            model.addAttribute("error", "Only doctors can create patient visits.");
+            return "error";
+        }
+
         return "patientvisit/add";
     }
 
     @PostMapping("/add")
     public String add(@ModelAttribute("patientvisit") @Valid final PatientvisitDTO patientvisitDTO,
-            final BindingResult bindingResult, final RedirectAttributes redirectAttributes) {
+                      final BindingResult bindingResult,
+                      final RedirectAttributes redirectAttributes,
+                      Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Hospuser currentUser = hospuserRepository.findByUsername(username).orElse(null);
+
+        if (currentUser == null || currentUser.getRole().getRoleId() != 2) {
+            model.addAttribute("error", "Only doctors can create patient visits.");
+            return "error";
+        }
+
         if (bindingResult.hasErrors()) {
             return "patientvisit/add";
         }
@@ -66,14 +88,45 @@ public class PatientvisitController {
 
     @GetMapping("/edit/{visitid}")
     public String edit(@PathVariable(name = "visitid") final Integer visitid, final Model model) {
-        model.addAttribute("patientvisit", patientvisitService.get(visitid));
+        PatientvisitDTO visit = patientvisitService.get(visitid);
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Hospuser currentUser = hospuserRepository.findByUsername(username).orElse(null);
+
+        boolean isEditable = false;
+        if (currentUser != null && currentUser.getRole().getRoleId() == 2) {
+            if (visit.getDoctor().equals(currentUser.getUserId())) {
+                isEditable = true;
+            }
+        } else if (currentUser != null && currentUser.getRole().getRoleId() == 1) {
+            isEditable = true;
+        }
+
+        model.addAttribute("patientvisit", visit);
+        model.addAttribute("isEditable", isEditable);
         return "patientvisit/edit";
     }
 
+
     @PostMapping("/edit/{visitid}")
     public String edit(@PathVariable(name = "visitid") final Integer visitid,
-            @ModelAttribute("patientvisit") @Valid final PatientvisitDTO patientvisitDTO,
-            final BindingResult bindingResult, final RedirectAttributes redirectAttributes) {
+                       @ModelAttribute("patientvisit") @Valid final PatientvisitDTO patientvisitDTO,
+                       final BindingResult bindingResult,
+                       final RedirectAttributes redirectAttributes) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Hospuser currentUser = hospuserRepository.findByUsername(username).orElse(null);
+
+        PatientvisitDTO visit = patientvisitService.get(visitid);
+
+        if (currentUser != null && currentUser.getRole().getRoleId() == 2) {
+            if (!visit.getDoctor().equals(currentUser.getUserId())) {
+                return "error";
+            }
+        }
+
         if (bindingResult.hasErrors()) {
             return "patientvisit/edit";
         }
@@ -81,6 +134,8 @@ public class PatientvisitController {
         redirectAttributes.addFlashAttribute(WebUtils.MSG_SUCCESS, WebUtils.getMessage("patientvisit.update.success"));
         return "redirect:/patientvisits";
     }
+
+
 
     @PostMapping("/delete/{visitid}")
     public String delete(@PathVariable(name = "visitid") final Integer visitid,

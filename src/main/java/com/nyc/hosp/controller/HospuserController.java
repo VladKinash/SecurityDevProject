@@ -1,5 +1,6 @@
 package com.nyc.hosp.controller;
 
+import com.nyc.hosp.domain.Hospuser;
 import com.nyc.hosp.domain.Role;
 import com.nyc.hosp.model.HospuserDTO;
 import com.nyc.hosp.repos.RoleRepository;
@@ -9,6 +10,9 @@ import com.nyc.hosp.util.ReferencedWarning;
 import com.nyc.hosp.util.WebUtils;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -59,7 +63,6 @@ public class HospuserController {
         if (bindingResult.hasErrors()) {
             return "hospuser/add";
         }
-        // Check 2 passwords
         hospuserDTO.setLastlogondatetime(OffsetDateTime.now());
         hospuserDTO.setLocked(false);
         hospuserService.create(hospuserDTO);
@@ -69,21 +72,52 @@ public class HospuserController {
 
     @GetMapping("/edit/{userId}")
     public String edit(@PathVariable(name = "userId") final Integer userId, final Model model) {
-        model.addAttribute("hospuser", hospuserService.get(userId));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = ((UserDetails) auth.getPrincipal()).getUsername();
+
+        Hospuser currentUser = hospuserService.findEntityByUsername(currentUsername);
+        HospuserDTO targetUser = hospuserService.get(userId);
+
+        if (currentUser.getRole().getRolename().equals("Secretariat")) {
+            Integer targetRoleId = targetUser.getRole();
+            String targetRole = hospuserService.getRoleNameById(targetRoleId);
+
+            if (!(targetRole.equals("Doctor") || targetRole.equals("Patient"))) {
+                return "error";
+            }
+        }
+
+        model.addAttribute("hospuser", targetUser);
         return "hospuser/edit";
     }
 
+
     @PostMapping("/edit/{userId}")
     public String edit(@PathVariable(name = "userId") final Integer userId,
-            @ModelAttribute("hospuser") @Valid final HospuserDTO hospuserDTO,
-            final BindingResult bindingResult, final RedirectAttributes redirectAttributes) {
+                       @ModelAttribute("hospuser") @Valid final HospuserDTO hospuserDTO,
+                       final BindingResult bindingResult, final RedirectAttributes redirectAttributes) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = ((UserDetails) auth.getPrincipal()).getUsername();
+        Hospuser currentUser = hospuserService.findEntityByUsername(currentUsername);
+        HospuserDTO targetUser = hospuserService.get(userId);
+
+        if (currentUser.getRole().getRolename().equals("Secretariat")) {
+            Integer targetRoleId = targetUser.getRole();
+            String targetRole = hospuserService.getRoleNameById(targetRoleId);
+            if (!(targetRole.equals("Doctor") || targetRole.equals("Patient"))) {
+                return "error";
+            }
+        }
+
         if (bindingResult.hasErrors()) {
             return "hospuser/edit";
         }
+
         hospuserService.update(userId, hospuserDTO);
         redirectAttributes.addFlashAttribute(WebUtils.MSG_SUCCESS, WebUtils.getMessage("hospuser.update.success"));
         return "redirect:/hospusers";
     }
+
 
     @PostMapping("/delete/{userId}")
     public String delete(@PathVariable(name = "userId") final Integer userId,

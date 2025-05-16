@@ -41,6 +41,17 @@ public class HospuserService {
                 .map(hospuser -> mapToDTO(hospuser, new HospuserDTO()))
                 .orElseThrow(NotFoundException::new);
     }
+    public Hospuser findEntityByUsername(String username) {
+        return hospuserRepository.findByUsername(username)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+    }
+
+    public String getRoleNameById(Integer roleId) {
+        return roleRepository.findById(roleId)
+                .map(Role::getRolename)
+                .orElse("UNKNOWN");
+    }
+
 
     public Integer create(final HospuserDTO hospuserDTO) {
         final Hospuser hospuser = new Hospuser();
