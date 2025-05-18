@@ -5,6 +5,7 @@ import com.nyc.hosp.domain.Role;
 import com.nyc.hosp.model.HospuserDTO;
 import com.nyc.hosp.repos.RoleRepository;
 import com.nyc.hosp.service.HospuserService;
+import com.nyc.hosp.util.AuditLogger;
 import com.nyc.hosp.util.CustomCollectors;
 import com.nyc.hosp.util.ReferencedWarning;
 import com.nyc.hosp.util.WebUtils;
@@ -32,11 +33,14 @@ public class HospuserController {
 
     private final HospuserService hospuserService;
     private final RoleRepository roleRepository;
+    private final AuditLogger auditLogger;
+
 
     public HospuserController(final HospuserService hospuserService,
-            final RoleRepository roleRepository) {
+                              final RoleRepository roleRepository, AuditLogger auditLogger) {
         this.hospuserService = hospuserService;
         this.roleRepository = roleRepository;
+        this.auditLogger = auditLogger;
     }
 
     @ModelAttribute
@@ -59,16 +63,26 @@ public class HospuserController {
 
     @PostMapping("/add")
     public String add(@ModelAttribute("hospuser") @Valid final HospuserDTO hospuserDTO,
-            final BindingResult bindingResult, final RedirectAttributes redirectAttributes) {
+                      final BindingResult bindingResult,
+                      final RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             return "hospuser/add";
         }
+
         hospuserDTO.setLastlogondatetime(OffsetDateTime.now());
         hospuserDTO.setLocked(false);
-        hospuserService.create(hospuserDTO);
+        Integer createdId = hospuserService.create(hospuserDTO);
+
+        // Log who did the creation
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Hospuser currentUser = hospuserService.findEntityByUsername(username);
+        auditLogger.log(currentUser, "CREATE_USER", "Hospuser", createdId);
+
         redirectAttributes.addFlashAttribute(WebUtils.MSG_SUCCESS, WebUtils.getMessage("hospuser.create.success"));
         return "redirect:/hospusers";
     }
+
 
     @GetMapping("/edit/{userId}")
     public String edit(@PathVariable(name = "userId") final Integer userId, final Model model) {
@@ -114,6 +128,7 @@ public class HospuserController {
         }
 
         hospuserService.update(userId, hospuserDTO);
+        auditLogger.log(currentUser, "UPDATE_USER", "Hospuser", userId);
         redirectAttributes.addFlashAttribute(WebUtils.MSG_SUCCESS, WebUtils.getMessage("hospuser.update.success"));
         return "redirect:/hospusers";
     }
@@ -121,16 +136,24 @@ public class HospuserController {
 
     @PostMapping("/delete/{userId}")
     public String delete(@PathVariable(name = "userId") final Integer userId,
-            final RedirectAttributes redirectAttributes) {
+                         final RedirectAttributes redirectAttributes) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Hospuser currentUser = hospuserService.findEntityByUsername(username);
+
         final ReferencedWarning referencedWarning = hospuserService.getReferencedWarning(userId);
         if (referencedWarning != null) {
             redirectAttributes.addFlashAttribute(WebUtils.MSG_ERROR,
                     WebUtils.getMessage(referencedWarning.getKey(), referencedWarning.getParams().toArray()));
         } else {
+            auditLogger.log(currentUser, "DELETE_USER", "Hospuser", userId);
             hospuserService.delete(userId);
             redirectAttributes.addFlashAttribute(WebUtils.MSG_INFO, WebUtils.getMessage("hospuser.delete.success"));
         }
+
         return "redirect:/hospusers";
     }
+
 
 }

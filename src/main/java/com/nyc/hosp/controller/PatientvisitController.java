@@ -4,6 +4,7 @@ import com.nyc.hosp.domain.Hospuser;
 import com.nyc.hosp.model.PatientvisitDTO;
 import com.nyc.hosp.repos.HospuserRepository;
 import com.nyc.hosp.service.PatientvisitService;
+import com.nyc.hosp.util.AuditLogger;
 import com.nyc.hosp.util.CustomCollectors;
 import com.nyc.hosp.util.WebUtils;
 import jakarta.validation.Valid;
@@ -21,18 +22,25 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 
+
+
 @Controller
 @RequestMapping("/patientvisits")
 public class PatientvisitController {
 
     private final PatientvisitService patientvisitService;
     private final HospuserRepository hospuserRepository;
+    private final AuditLogger auditLogger;
+
 
     public PatientvisitController(final PatientvisitService patientvisitService,
-            final HospuserRepository hospuserRepository) {
+                                  final HospuserRepository hospuserRepository,
+                                  final AuditLogger auditLogger) {
         this.patientvisitService = patientvisitService;
         this.hospuserRepository = hospuserRepository;
+        this.auditLogger = auditLogger;
     }
+
 
     @ModelAttribute
     public void prepareContext(final Model model) {
@@ -81,7 +89,8 @@ public class PatientvisitController {
         if (bindingResult.hasErrors()) {
             return "patientvisit/add";
         }
-        patientvisitService.create(patientvisitDTO);
+        Integer createdId = patientvisitService.create(patientvisitDTO);
+        auditLogger.log(currentUser, "CREATE_VISIT", "Patientvisit", createdId);
         redirectAttributes.addFlashAttribute(WebUtils.MSG_SUCCESS, WebUtils.getMessage("patientvisit.create.success"));
         return "redirect:/patientvisits";
     }
@@ -131,6 +140,7 @@ public class PatientvisitController {
             return "patientvisit/edit";
         }
         patientvisitService.update(visitid, patientvisitDTO);
+        auditLogger.log(currentUser, "UPDATE_VISIT", "Patientvisit", visitid);
         redirectAttributes.addFlashAttribute(WebUtils.MSG_SUCCESS, WebUtils.getMessage("patientvisit.update.success"));
         return "redirect:/patientvisits";
     }
@@ -139,10 +149,20 @@ public class PatientvisitController {
 
     @PostMapping("/delete/{visitid}")
     public String delete(@PathVariable(name = "visitid") final Integer visitid,
-            final RedirectAttributes redirectAttributes) {
+                         final RedirectAttributes redirectAttributes) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        Hospuser currentUser = hospuserRepository.findByUsername(username).orElse(null);
+
+        if (currentUser != null) {
+            auditLogger.log(currentUser, "DELETE_VISIT", "Patientvisit", visitid);
+        }
+
         patientvisitService.delete(visitid);
         redirectAttributes.addFlashAttribute(WebUtils.MSG_INFO, WebUtils.getMessage("patientvisit.delete.success"));
         return "redirect:/patientvisits";
     }
+
 
 }
