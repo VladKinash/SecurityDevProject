@@ -8,6 +8,9 @@ import com.nyc.hosp.repos.PatientvisitRepository;
 import com.nyc.hosp.util.EncryptionUtil;
 import com.nyc.hosp.util.NotFoundException;
 import java.util.List;
+
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -78,8 +81,10 @@ public class PatientvisitService {
         patientvisit.setVisitdate(patientvisitDTO.getVistidate());
 
         if (patientvisitDTO.getDiagnosis() != null) {
-            patientvisit.setDiagnosis(EncryptionUtil.encrypt(patientvisitDTO.getDiagnosis()));
+            String sanitized = Jsoup.clean(patientvisitDTO.getDiagnosis(), Safelist.none());
+            patientvisit.setDiagnosis(EncryptionUtil.encrypt(sanitized));
         }
+
 
         final Hospuser patient = patientvisitDTO.getPatient() == null ? null : hospuserRepository.findById(patientvisitDTO.getPatient())
                 .orElseThrow(() -> new NotFoundException("patient not found"));

@@ -18,17 +18,12 @@ public class HospuserDetailsService implements UserDetailsService {
     @Autowired
     private HospuserRepository hospuserRepository;
 
-    @Autowired
-    private RoleRepository roleRepository;
-
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
     Hospuser user = hospuserRepository.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        System.out.println("Loaded user: " + user.getUsername() + " with password: " + user.getUserpassword());
 
-
-        String rolename = user.getRole().getRolename().toUpperCase(); // "ADMIN", "DOCTOR", "PATIENT"
+        String rolename = user.getRole().getRolename().toUpperCase(); // "ADMIN", "DOCTOR", "PATIENT", "SECRETARY"
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getUserpassword(),

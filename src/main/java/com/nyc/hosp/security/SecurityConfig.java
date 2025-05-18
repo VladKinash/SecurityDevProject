@@ -38,14 +38,22 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/", true)
-                        .failureUrl("/login-error") // 👈 required for error handling
+                        .failureUrl("/login-error")
                         .permitAll()
                 )
 
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
                         .permitAll()
+                )
+                .sessionManagement(session -> session
+                        .sessionFixation().migrateSession()
+                        .maximumSessions(1)
+                        .maxSessionsPreventsLogin(true)
+                        .expiredUrl("/login?expired=true")
                 );
+
+
         return http.build();
     }
 
@@ -60,5 +68,7 @@ public class SecurityConfig {
         builder.userDetailsService(hospuserDetailsService).passwordEncoder(passwordEncoder());
         return builder.build();
     }
+
+
 
 }

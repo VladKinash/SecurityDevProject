@@ -22,19 +22,6 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @GetMapping("/register")
-    public String showRegistrationForm(Model model) {
-        model.addAttribute("hospuser", new HospuserDTO());
-
-        Map<Integer, String> roleOptions = new LinkedHashMap<>();
-        roleOptions.put(1, "Admin");
-        roleOptions.put(2, "Doctor");
-        roleOptions.put(3, "Patient");
-
-        model.addAttribute("roleValues", roleOptions);  // this will be read by the form fragment
-        return "register/register";
-    }
-
     private boolean isPasswordComplex(String password) {
         if (password == null) return false;
         return password.matches("^(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-={}:;'<>,.?/]).{9,}$");

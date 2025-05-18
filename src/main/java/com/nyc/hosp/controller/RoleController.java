@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 
 @Controller
 @RequestMapping("/roles")
@@ -37,12 +38,17 @@ public class RoleController {
         return "role/add";
     }
 
+
     @PostMapping("/add")
     public String add(@ModelAttribute("role") @Valid final RoleDTO roleDTO,
-            final BindingResult bindingResult, final RedirectAttributes redirectAttributes) {
+                      final BindingResult bindingResult, final RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             return "role/add";
         }
+
+        String cleanRoleName = Jsoup.clean(roleDTO.getRolename(), Safelist.none());
+        roleDTO.setRolename(cleanRoleName);
+
         roleService.create(roleDTO);
         redirectAttributes.addFlashAttribute(WebUtils.MSG_SUCCESS, WebUtils.getMessage("role.create.success"));
         return "redirect:/roles";
