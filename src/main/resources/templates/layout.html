@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.w3.org/1999/xhtml">
     <head>
         <title layout:title-pattern="$CONTENT_TITLE | $LAYOUT_TITLE">[[#{app.title}]]</title>
         <meta charset="utf-8" />
@@ -14,6 +15,10 @@
     </head>
     <body>
         <header class="bg-light">
+            <form th:action="@{/logout}" method="post" style="display: inline;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                <button type="submit" class="btn btn-link">Logout</button>
+            </form>
             <div class="container">
                 <nav class="navbar navbar-light navbar-expand-md">
                     <a th:href="@{/}" class="navbar-brand">
@@ -33,7 +38,7 @@
                                 <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="#" id="navbarEntitiesLink" role="button"
                                         aria-expanded="false">[[#{navigation.entities}]]</a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarEntitiesLink">
-                                    <li><a th:href="@{/hospusers}" class="dropdown-item">[[#{hospuser.list.headline}]]</a></li>
+                                    <li  sec:authorize="hasRole('DOCTOR')"><a th:href="@{/hospusers}" class="dropdown-item">[[#{hospuser.list.headline}]]</a></li>
                                     <li><a th:href="@{/patientvisits}" class="dropdown-item">[[#{patientvisit.list.headline}]]</a></li>
                                     <li><a th:href="@{/roles}" class="dropdown-item">[[#{role.list.headline}]]</a></li>
                                 </ul>

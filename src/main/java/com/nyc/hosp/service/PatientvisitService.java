@@ -5,8 +5,12 @@ import com.nyc.hosp.domain.Patientvisit;
 import com.nyc.hosp.model.PatientvisitDTO;
 import com.nyc.hosp.repos.HospuserRepository;
 import com.nyc.hosp.repos.PatientvisitRepository;
+import com.nyc.hosp.util.EncryptionUtil;
 import com.nyc.hosp.util.NotFoundException;
 import java.util.List;
+
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -54,26 +58,44 @@ public class PatientvisitService {
     }
 
     private PatientvisitDTO mapToDTO(final Patientvisit patientvisit,
-            final PatientvisitDTO patientvisitDTO) {
+                                     final PatientvisitDTO patientvisitDTO) {
         patientvisitDTO.setVisitid(patientvisit.getVisitid());
         patientvisitDTO.setVistidate(patientvisit.getVisitdate());
-        patientvisitDTO.setDiagnosis(patientvisit.getDiagnosis());
+
+        if (patientvisit.getDiagnosis() != null) {
+            try {
+                patientvisitDTO.setDiagnosis(EncryptionUtil.decrypt(patientvisit.getDiagnosis()));
+            } catch (Exception e) {
+                patientvisitDTO.setDiagnosis("UNREADABLE/INVALID DATA");
+            }
+        }
+
         patientvisitDTO.setPatient(patientvisit.getPatient() == null ? null : patientvisit.getPatient().getUserId());
         patientvisitDTO.setDoctor(patientvisit.getDoctor() == null ? null : patientvisit.getDoctor().getUserId());
         return patientvisitDTO;
     }
 
+
     private Patientvisit mapToEntity(final PatientvisitDTO patientvisitDTO,
-            final Patientvisit patientvisit) {
+                                     final Patientvisit patientvisit) {
         patientvisit.setVisitdate(patientvisitDTO.getVistidate());
-        patientvisit.setDiagnosis(patientvisitDTO.getDiagnosis());
+
+        if (patientvisitDTO.getDiagnosis() != null) {
+            String sanitized = Jsoup.clean(patientvisitDTO.getDiagnosis(), Safelist.none());
+            patientvisit.setDiagnosis(EncryptionUtil.encrypt(sanitized));
+        }
+
+
         final Hospuser patient = patientvisitDTO.getPatient() == null ? null : hospuserRepository.findById(patientvisitDTO.getPatient())
                 .orElseThrow(() -> new NotFoundException("patient not found"));
         patientvisit.setPatient(patient);
+
         final Hospuser doctor = patientvisitDTO.getDoctor() == null ? null : hospuserRepository.findById(patientvisitDTO.getDoctor())
                 .orElseThrow(() -> new NotFoundException("doctor not found"));
         patientvisit.setDoctor(doctor);
+
         return patientvisit;
     }
+
 
 }

@@ -1,17 +1,12 @@
 package com.nyc.hosp.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
+
 import java.time.OffsetDateTime;
 
 
 @Entity
+@Table(name = "hospuser")
 public class Hospuser {
 
     @Id
@@ -19,10 +14,10 @@ public class Hospuser {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer userId;
 
-    @Column(length = 100)
+    @Column(length = 100, unique = true, nullable = false)
     private String username;
 
-    @Column(length = 100)
+    @Column(length = 100, nullable = false)
     private String userpassword;
 
     @Column
@@ -34,12 +29,13 @@ public class Hospuser {
     @Column(length = 100)
     private String email;
 
-    @Column
+    @Column(nullable = false)
     private boolean locked;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
     private Role role;
+
 
     public Integer getUserId() {
         return userId;
@@ -95,6 +91,10 @@ public class Hospuser {
 
     public void setLocked(boolean locked) {
         this.locked = locked;
+    }
+
+    public boolean getLocked() {
+        return locked;
     }
 
     public OffsetDateTime getLastchangepassword() {

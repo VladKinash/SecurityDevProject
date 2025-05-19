@@ -9,14 +9,15 @@ import jakarta.persistence.Table;
 
 
 @Entity
-@Table(name = "Role")
+@Table(name = "role")
 public class Role {
 
     @Id
     @Column(nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer roleId;
 
-    @Column(length = 100)
+    @Column(length = 100, unique = true, nullable = false)
     private String rolename;
 
     public Integer getRoleId() {
