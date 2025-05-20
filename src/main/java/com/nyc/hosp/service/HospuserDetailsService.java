@@ -18,17 +18,30 @@ public class HospuserDetailsService implements UserDetailsService {
     @Autowired
     private HospuserRepository hospuserRepository;
 
+    @Autowired
+    private LoginAttemptService loginAttemptService;
+
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    Hospuser user = hospuserRepository.findByUsername(username)
-            .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        Hospuser user = hospuserRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        String rolename = user.getRole().getRolename().toUpperCase(); // "ADMIN", "DOCTOR", "PATIENT", "SECRETARY"
+        if (loginAttemptService.isLocked(user)) {
+            user.setLocked(true);
+            hospuserRepository.save(user);
+            throw new UsernameNotFoundException("Too many failed attempts. Account locked temporarily.");
+        }
+
+        if (user.isLocked()) {
+            throw new UsernameNotFoundException("Account is locked.");
+        }
+
+        String rolename = user.getRole().getRolename().toUpperCase();
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getUserpassword(),
                 List.of(new SimpleGrantedAuthority("ROLE_" + rolename))
         );
+    }
 
-}
 }
