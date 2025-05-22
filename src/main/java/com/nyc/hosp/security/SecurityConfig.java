@@ -22,12 +22,20 @@ public class SecurityConfig {
     @Autowired
     private HospuserDetailsService hospuserDetailsService;
 
+    @Autowired
+    private CustomAuthFailureHandler customAuthFailureHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register", "/public/**").permitAll()
+                        .requestMatchers(
+                                "/login",
+                                "/register",
+                                "/public/**",
+                                "/auth-failure",
+                                "/auth-failure/**"
+                        ).permitAll()
                         .requestMatchers("/hospusers", "/hospuser/**").hasAnyRole("ADMIN", "SECRETARIAT")
                         .requestMatchers("/roles", "/roles/**").hasAnyRole( "ADMIN")
                         .requestMatchers("/patientvisits", "/patientvisits/**").hasAnyRole("DOCTOR", "ADMIN")
@@ -37,10 +45,11 @@ public class SecurityConfig {
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
+                        .failureHandler(customAuthFailureHandler)
                         .defaultSuccessUrl("/", true)
-                        .failureUrl("/login-error")
                         .permitAll()
                 )
+
 
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")

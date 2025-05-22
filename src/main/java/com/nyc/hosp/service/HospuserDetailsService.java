@@ -3,6 +3,7 @@ package com.nyc.hosp.service;
 import com.nyc.hosp.domain.Hospuser;
 import com.nyc.hosp.repos.HospuserRepository;
 import com.nyc.hosp.repos.RoleRepository;
+import com.nyc.hosp.util.PasswordExpiredException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,7 +23,7 @@ public class HospuserDetailsService implements UserDetailsService {
     private LoginAttemptService loginAttemptService;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String username) {
         Hospuser user = hospuserRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
@@ -32,16 +33,22 @@ public class HospuserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("Too many failed attempts. Account locked temporarily.");
         }
 
-        if (user.isLocked()) {
-            throw new UsernameNotFoundException("Account is locked.");
-        }
+        boolean accountNonLocked      = !user.isLocked();
+        boolean credentialsNonExpired = !user.isPasswordExpired();
+        boolean accountEnabled        = true;
+        boolean accountNonExpired     = true;
 
-        String rolename = user.getRole().getRolename().toUpperCase();
+        String role = user.getRole().getRolename().toUpperCase();
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getUserpassword(),
-                List.of(new SimpleGrantedAuthority("ROLE_" + rolename))
+                accountEnabled,
+                accountNonExpired,
+                credentialsNonExpired,
+                accountNonLocked,
+                List.of(new SimpleGrantedAuthority("ROLE_" + role))
         );
     }
+
 
 }

@@ -32,13 +32,13 @@ public class HospuserService {
     public List<HospuserDTO> findAll() {
         final List<Hospuser> hospusers = hospuserRepository.findAll(Sort.by("userId"));
         return hospusers.stream()
-                .map(hospuser -> mapToDTO(hospuser, new HospuserDTO()))
+                .map(hospuser -> mapToDTO(hospuser))
                 .toList();
     }
 
     public HospuserDTO get(final Integer userId) {
         return hospuserRepository.findById(userId)
-                .map(hospuser -> mapToDTO(hospuser, new HospuserDTO()))
+                .map(hospuser -> mapToDTO(hospuser))
                 .orElseThrow(NotFoundException::new);
     }
     public Hospuser findEntityByUsername(String username) {
@@ -70,16 +70,19 @@ public class HospuserService {
         hospuserRepository.deleteById(userId);
     }
 
-    private HospuserDTO mapToDTO(final Hospuser hospuser, final HospuserDTO hospuserDTO) {
+    public HospuserDTO mapToDTO(final Hospuser hospuser) {
+        HospuserDTO hospuserDTO = new HospuserDTO();
         hospuserDTO.setUserId(hospuser.getUserId());
         hospuserDTO.setUsername(hospuser.getUsername());
         hospuserDTO.setUserpassword(hospuser.getUserpassword());
         hospuserDTO.setLastlogondatetime(hospuser.getLastlogondatetime());
-hospuserDTO.setLastchangepassword(hospuser.getLastchangepassword());
+        hospuserDTO.setLastchangepassword(hospuser.getLastchangepassword());
         hospuserDTO.setEmail(hospuser.getEmail());
+        hospuserDTO.setLocked(hospuser.isLocked());
         hospuserDTO.setRole(hospuser.getRole() == null ? null : hospuser.getRole().getRoleId());
         return hospuserDTO;
     }
+
 
     private Hospuser mapToEntity(final HospuserDTO hospuserDTO, final Hospuser hospuser) {
         hospuser.setUsername(hospuserDTO.getUsername());
