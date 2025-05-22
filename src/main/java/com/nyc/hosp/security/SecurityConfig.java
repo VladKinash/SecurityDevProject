@@ -22,28 +22,37 @@ public class SecurityConfig {
     @Autowired
     private HospuserDetailsService hospuserDetailsService;
 
+    @Autowired
+    private CustomAuthFailureHandler customAuthFailureHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register", "/public/**").permitAll()
+                        .requestMatchers("/login", "/register", "/public/**", "/auth-failure", "/auth-failure/**").permitAll()
                         .requestMatchers("/hospusers", "/hospuser/**").hasAnyRole("ADMIN", "SECRETARIAT")
-                        .requestMatchers("/roles", "/roles/**").hasAnyRole( "ADMIN")
-                        .requestMatchers("/patientvisits", "/patientvisits/**").hasAnyRole("DOCTOR", "ADMIN")
-                        .requestMatchers("/patientvisits/add", "/patientvisits/add/**").hasAnyRole("DOCTOR")
-
+                        .requestMatchers("/roles", "/roles/**").hasRole("ADMIN")
+                        .requestMatchers("/patientvisits/add", "/patientvisits/add/**").hasRole("DOCTOR")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/", true)
-                        .failureUrl("/login-error")
+                        .successHandler((request, response, authentication) -> {
+                            boolean isPatient = authentication.getAuthorities().stream()
+                                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_PATIENT"));
+                            if (isPatient) {
+                                response.sendRedirect("/patientvisits/personal");
+                            } else {
+                                response.sendRedirect("/");
+                            }
+                        })
+                        .failureHandler(customAuthFailureHandler)
                         .permitAll()
                 )
-
                 .logout(logout -> logout
                         .logoutSuccessUrl("/login?logout")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
                         .permitAll()
                 )
                 .sessionManagement(session -> session
@@ -53,9 +62,9 @@ public class SecurityConfig {
                         .expiredUrl("/login?expired=true")
                 );
 
-
         return http.build();
     }
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {

@@ -104,4 +104,9 @@ public class Hospuser {
     public void setLastchangepassword(OffsetDateTime lastchangepassword) {
         this.lastchangepassword = lastchangepassword;
     }
+
+    public boolean isPasswordExpired() {
+        return lastchangepassword == null || lastchangepassword.plusDays(90).isBefore(OffsetDateTime.now());
+    }
+
 }
