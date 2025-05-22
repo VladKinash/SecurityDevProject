@@ -21,7 +21,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-
+import java.util.List;
 
 
 @Controller
@@ -163,6 +163,28 @@ public class PatientvisitController {
         redirectAttributes.addFlashAttribute(WebUtils.MSG_INFO, WebUtils.getMessage("patientvisit.delete.success"));
         return "redirect:/patientvisits";
     }
+
+
+    @GetMapping("/personal")
+    public String viewOwnVisits(Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+
+        Hospuser currentUser = hospuserRepository.findByUsername(username).orElse(null);
+
+        if (currentUser == null || currentUser.getRole().getRoleId() != 3) {
+            return "redirect:/";
+        }
+
+        List<PatientvisitDTO> ownVisits = patientvisitService.findAll().stream()
+                .filter(visit -> visit.getPatient() != null && visit.getPatient().equals(currentUser.getUserId()))
+                .toList();
+
+        model.addAttribute("patientvisits", ownVisits);
+        model.addAttribute("isReadOnly", true); // Optional flag for view logic
+        return "patientvisit/personal";
+    }
+
 
 
 }
