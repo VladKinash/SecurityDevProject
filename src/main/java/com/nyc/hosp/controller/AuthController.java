@@ -2,6 +2,7 @@ package com.nyc.hosp.controller;
 
 import com.nyc.hosp.domain.Hospuser;
 import com.nyc.hosp.model.HospuserDTO;
+import com.nyc.hosp.model.LoginFormDTO;
 import com.nyc.hosp.service.HospuserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,23 +48,33 @@ public class AuthController {
     }
 
     @GetMapping("/auth-failure")
-    public String authFailure(@RequestParam String reason, HttpServletRequest request, Model model) {
+    public String authFailure(@RequestParam String reason,
+                              HttpServletRequest request,
+                              Model model) {
         String username = (String) request.getSession().getAttribute("authUsername");
-        model.addAttribute("username", username);
 
         if ("expired".equals(reason)) {
+            model.addAttribute("username", username);
             model.addAttribute("expired", true);
             return "login/forcePasswordChange";
         }
 
-        model.addAttribute("error", switch (reason) {
-            case "locked" -> "Your account is locked.";
-            case "bad_credentials" -> "Invalid username or password.";
-            default -> "Authentication failed.";
-        });
+        LoginFormDTO loginForm = new LoginFormDTO();
+        loginForm.setUsername(username);
+        model.addAttribute("loginForm", loginForm);
+        model.addAttribute("loginError", true);
+
+        String msg;
+        switch (reason) {
+            case "locked"           -> msg = "Your account is locked.";
+            case "bad_credentials"  -> msg = "Invalid username or password.";
+            default                 -> msg = "Authentication failed.";
+        }
+        model.addAttribute("errorMessage", msg);
 
         return "login/login";
     }
+
 
     @PostMapping("/auth-failure/change-password")
     public String updatePassword(@RequestParam String username,
@@ -92,5 +103,7 @@ public class AuthController {
 
         return "redirect:/login?passwordUpdated";
     }
+
+
 }
 
